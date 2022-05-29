@@ -1,1 +1,3 @@
 # Accident-Reporting-System
+
+Accident Report System is a PHP based web application, that includes other basic web application languages HTML, CSS, and JavaScript. Users under 4 categories, Driver, RDA Staff, Police Staff, and the Insurance company are allowed to create user accounts and sign up to the system. Drivers are allowed to report an accident to the system, and update, delete and view their previously reported accidents. The RDA Staff, Police Staff, and the Insurance company users are allowed to view all the driver reported accidents and validate them accordingly. Also, these users have access to view detailed graphs on the Analysis page.
