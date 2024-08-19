@@ -6,9 +6,10 @@
 		header("location:Login.php?action=login");  
 	} 
 ?>
-<html>
+<!DOCTYPE html> 
+<html lang="en">
 <head> 
-
+	<meta charset="utf-8">
 	<title>Report an Accident</title>
 	
 	<link rel="icon" href="images/car.png" type="image/gif">
@@ -140,8 +141,8 @@
 						  
 							<div id="map"></div>
 				
-							<input type="hidden" id="lat" readonly="yes">
-							<input type="hidden" id="lng" readonly="yes">
+							<input type="hidden" name="lat" id="lat" value="">
+							<input type="hidden" name="lng" id="lng" value="">
 						</div>
 					</td>
 				</tr>
@@ -204,9 +205,9 @@
 					</td>
 				</tr>
 		        <tr>
-				    <td colspan=2 style="padding-left:250px;">												<!--submit button-->
+				    <td colspan=2 style="padding-left:250px;">												<!--submit accident-->
 						<div class="col-md-4 mb-3" style="padding-top: 5px;">
-							<button name="btnSubmitAccident" class="btn btn-primary" type="submit" style="width: 500px; color: white; font-size: 15px;align:center;">Submit form</button>
+							<input name="btnSubmitAccident" type="submit" class="btn btn-primary" value="Submit form" style="width: 500px; color: white; font-size: 15px;align:center;" id="btnSubmitAccident" onclick="JavaScript:return validateReportAccidentForm();">
 		                </div>
 					</td>
 				</tr>
@@ -217,11 +218,7 @@
 		
 	</form>
 
-
-
-
-
-<script>
+<script type="text/javascript">
 
 	/****************************************Validating Number of Files uploaded*******************************************************/
 	const inputImages = document.querySelector('#exampleFormControlFile1');
@@ -297,8 +294,8 @@
 		//Get location.
 		var currentLocation = marker.getPosition();
 		//Add lat and lng values to a field that we can save.
-		document.getElementById('lat').value = currentLocation.lat(); //latitude
-		document.getElementById('lng').value = currentLocation.lng(); //longitude
+		document.querySelector("input[name='lat']").value = currentLocation.lat(); //latitude
+		document.querySelector("input[name='lng']").value = currentLocation.lng(); //longitude
 	}
         
         
@@ -309,8 +306,8 @@
 
 <?php 
                     $servername = "localhost";                              // Connecting to the database 
-					$user = "root";
-					$pw = "";
+					$user = "ardb";
+					$pw = "mypassword";
 					$db = "accidentreportingdb";
 
 					$connection = mysqli_connect($servername, $user, $pw, $db);			
@@ -332,65 +329,89 @@
 						$reportDate = $_POST['reportDate'];
 						$reportTime = $_POST['reportTime'];
 						$reportLocation = $_POST['reportLocation'];
+						$reportLat = $_POST['lat'];
+						$reportLng = $_POST['lng'];
 						$registrationNo = $_POST['registrationNo'];
-	
+						$success_r = false;
+						
 						//echo $reportTopic."<br>"; echo $reportDescription."<br>"; echo $reportCategory."<br>"; echo $reportDate."<br>"; echo $reportTime."<br>"; echo $reportLocation."<br>";
 	
 						$selectqry = "SELECT max(accident_id) as maxid from accident";
-						$result=mysqli_query($connection,$selectqry);
-						$row=mysqli_fetch_assoc($result);
-						//echo $row["maxid"];
-						$maxid = $row["maxid"];
-						$accidentId = $maxid+1;
-	
+						if($result=mysqli_query($connection,$selectqry)){
+							$row=mysqli_fetch_assoc($result);
+							if(is_null($row['maxid'])){$accidentId=1;}
+							else{$accidentId = $row['maxid']+1;}
+							mysqli_free_result($result);
+							//echo $row['maxid'];
+						}
+						
 						// Inserting data to accident table
-					
-						$insertaccident = "INSERT INTO accident (accident_id,topic,category,description,location,date,time) 
-						                    VALUES ($accidentId,'$reportTopic','$reportCategory','$reportDescription','$reportLocation','$reportDate','$reportTime')";
-						$resultaccident = mysqli_query($connection,$insertaccident);
-					
+						
+						$insertaccident = "INSERT INTO accident (accident_id,topic,category,description,location,lat,lng,date,time) 
+						                 VALUES (?,?,?,?,?,?,?,?,?)";
+						
+						$insertprepare = mysqli_prepare($connection, $insertaccident);
+						mysqli_stmt_bind_param($insertprepare, 'issssssss', $accidentId, $reportTopic, $reportCategory, $reportDescription, $reportLocation, $reportLat, $reportLng, $reportDate, $reportTime);
+						mysqli_stmt_execute($insertprepare);
+						
+						$selectqry = "SELECT * FROM accident WHERE accident_id=?";
+						$stmt = mysqli_prepare($connection, $selectqry);
+						mysqli_stmt_bind_param($stmt,'i', $accidentId);
+						mysqli_stmt_execute($stmt);
+						$result = mysqli_stmt_get_result($stmt);
+						
+						if(mysqli_num_rows($result) > 0){
+							$success_r = true;
+						}else{
+							$success_r = false;
+						}
+						
 					    // Inserting data to vehicle_accident
 						
-						$insertvehicle_accident = "INSERT INTO vehicle_accident (registration_no,accident_id) VALUES ('$registrationNo',$accidentId)";
-						$resultvehicle_accident = mysqli_query($connection,$insertvehicle_accident);
+						$insertvehicle_accident = "INSERT INTO vehicle_accident (accident_id,registration_no) 
+						                 VALUES (?,?)";
+						                 
+						$insertscndprepare = mysqli_prepare($connection, $insertvehicle_accident);
+						mysqli_stmt_bind_param($insertscndprepare, 'is', $accidentId, $registrationNo);
+						mysqli_stmt_execute($insertscndprepare);
 						
 						// Insering data to accident_photo table
 					
-						$fileCount = count($_FILES['file']['name']); 
+						$fileCount = count($_FILES['file']['name']);
+						@mkdir(__DIR__ . '/upload/' . $accidentId, 0755);
+						$success_u = false;
 						
 						for($i=0;$i<$fileCount;$i++)
 						{
 							$fileName = $_FILES['file']['name'][$i];
-							$filePath = "images/".$accidentId."/".$fileName;
-								
-							$insertaccident_photo = "Insert Into accident_photo (accident_id,photo) VALUES($accidentId,'$filePath')";
-							$resultaccident_photo= mysqli_query($connection,$insertaccident_photo);
+							$fileName_r = preg_replace('/[^a-zA-Z0-9_.]+/','-', $fileName);
+							$filePath = "images/".$accidentId."/".$fileName_r;
+							
+							$insertaccident_photo = "INSERT INTO accident_photo (accident_id,photo) 
+						                 VALUES (?,?)";
+						    
+						    $insertthrdprepare = mysqli_prepare($connection, $insertaccident_photo);
+						    mysqli_stmt_bind_param($insertthrdprepare, 'is', $accidentId, $filePath);
+						    mysqli_stmt_execute($insertthrdprepare);
 						
+							if(move_uploaded_file($_FILES['file']['tmp_name'][$i], __DIR__ . '/upload/'. $accidentId .'/'. $fileName)){
+								$success_u = true;
+							}else{
+								$success_u = false;
+							}
+						}
 						
-							move_uploaded_file($_FILES['file']['tmp_name'][$i], 'upload/'.$fileName); // Adding images to the local folder 
-						}	
-						
-						if($resultaccident && $resultaccident_photo)
-						{
+						if($success_r && $success_u){
 ?>
-							<script> alert("Accident is Reported Successfully"); </script>;
+							<script> alert("Accident is Reported Successfully."); </script>
 <?php
 						}
-						else
-						{
+						else{
 ?>
-							<script> alert("Error Uploading Iamges"); </script>;
+							<script> alert("Error Uploading Images."); </script>
 <?php
 						}
 					}
-					
-					
 ?>					
-					
-					
-					
-					
 </body>
-</html>  
-
-
+</html>
