@@ -7,8 +7,8 @@
 	}
 
     $servername = "localhost";                              // Connecting to the database 
-	$user = "root";
-	$pw = "";
+	$user = "ardb";
+	$pw = "mypassword";
 	$db = "accidentreportingdb";
 
 	$connection = mysqli_connect($servername, $user, $pw, $db);			
@@ -17,22 +17,19 @@
 		die("Connection failed: " .mysqli_connect_error());
 	}
 
-
 ?>
-
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head> 
-
+	<meta charset="utf-8">
 	<title>Update Accident</title>
 	
 	<link rel="icon" href="images/car.png" type="image/gif">
 
-	<link rel="stylesheet" type="text/css" href="src/The Smart Parking System.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
 	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-	<script src="src/jquery-1.9.1.min.js"></script>
 	
 	<!--location-->
     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js"></script>
@@ -75,21 +72,24 @@
 		</div>
 	</nav>
 
-
 	<!--****************************************************************Reporting Form*****************************************************************-->
 	<?php
-		$acc_id = $_POST['acc_id'];
+		$acc_id = (int)$_POST['acc_id'];
+		$username = $_SESSION["username"];
 		
-		$selectqry = "SELECT * FROM accident WHERE accident_id = $acc_id";
-		$result = mysqli_query($connection, $selectqry);
-						
+		$selectqry = "SELECT * FROM accident WHERE accident_id IN (SELECT accident_id FROM vehicle_accident WHERE accident_id = ? AND registration_no = ?)";
+		
+		$stmt = mysqli_prepare($connection, $selectqry);
+		mysqli_stmt_bind_param($stmt,'is', $acc_id, $username);
+		mysqli_stmt_execute($stmt);
+		
+		$result = mysqli_stmt_get_result($stmt);
+					
 		$row = mysqli_fetch_assoc($result);
 	?>
 	
 	<form method="POST" action="updateaccident.php" enctype="multipart/form-data">
-	
 		<input type="hidden" name="acc_id" value="<?php echo $acc_id; ?>">
-	
 		<center>
 		<div style="width: 1000px;">
 		
@@ -115,35 +115,35 @@
 						<div class="col-md-6 mb-3">
 							<label for="validationDefault03">Location</label>
 							<input type="text" name="reportLocation" class="form-control" id="validationDefault03" placeholder="Location" value="<?php echo $row['location']; ?>" style="width: 500px;" required><br>
-						  
+							
 							<div id="map"></div>
-				
-							<input type="hidden" id="lat" readonly="yes">
-							<input type="hidden" id="lng" readonly="yes">
+							
+							<input type="hidden" name="lat" id="lat" value="<?php echo $row['lat']; ?>">
+							<input type="hidden" name="lng" id="lng" value="<?php echo $row['lng']; ?>">
 						</div>
 					</td>
 				</tr>
-		
+				
 				<tr>
 					<td style="padding: 5px;">														<!--description-->
 						<div class="col-md-4 mb-3">
 							<label for="validationDefault02">Description</label>
-							<textarea name="reportDescription" class="form-control" id="validationDefault02" placeholder="Description" value="<?php echo $row['description']; ?>" rows="5" style="width: 500px;"required></textarea>
+							<textarea name="reportDescription" class="form-control" id="validationDefault02" placeholder="Description" rows="5" style="width: 500px;"required><?php echo $row['description']; ?></textarea>
 						</div>
 					</td>
 				</tr>
-		
+				
 				<tr>
 					<td style="padding: 5px;">																<!--category-->
 						<div class="col-md-4 mb-3">
 							<label for="exampleFormControlSelect1" >Category</label>
-							<select name="reportCategory" class="form-control" id="exampleFormControlSelect1" value="<?php echo $row['category']; ?>" style="width: 500px; padding: 0px;">
-								<option value="0">--Category--</option>
-								<option value="Rear-End Collisions">Rear-End Collisions</option>
-								<option value="Head-On Collisions">Head-On Collisions</option>
-								<option value="Side-Impact Collisions">Side-Impact Collisions</option>
-								<option value="Sideswipe Accidents">Sideswipe Accidents</option>
-								<option value="Single-Vehicle Accidents">Single-Vehicle Accidents</option>
+							<select name="reportCategory" class="form-control" id="exampleFormControlSelect1" style="width: 500px; padding: 0px;">
+								<option value="0" <?php if(empty($row['category'])){ ?>selected="selected"<?php } ?>>--Category--</option>
+								<option value="Rear-End Collisions" <?php if($row['category'] == 'Rear-End Collisions'){ ?>selected="selected"<?php } ?>>Rear-End Collisions</option>
+								<option value="Head-On Collisions" <?php if($row['category'] == 'Head-On Collisions'){ ?>selected="selected"<?php } ?>>Head-On Collisions</option>
+								<option value="Side-Impact Collisions" <?php if($row['category'] == 'Side-Impact Collisions'){ ?>selected="selected"<?php } ?>>Side-Impact Collisions</option>
+								<option value="Sideswipe Accidents" <?php if($row['category'] == 'Sideswipe Accidents'){ ?>selected="selected"<?php } ?>>Sideswipe Accidents</option>
+								<option value="Single-Vehicle Accidents" <?php if($row['category'] == 'Single-Vehicle Accidents'){ ?>selected="selected"<?php } ?>>Single-Vehicle Accidents</option>
 							</select>
 						</div>
 					</td>
@@ -192,11 +192,7 @@
   
 		</div>
 		</center>
-		
-	</form>
-
-
-
+</form>
 <?php
 
 if(isset($_POST['updateAccident']))   
@@ -208,6 +204,8 @@ if(isset($_POST['updateAccident']))
 	$reportDate = $_POST['reportDate'];
 	$reportTime = $_POST['reportTime'];
 	$reportLocation = $_POST['reportLocation'];
+	$reportLat = $_POST['lat'];
+	$reportLng = $_POST['lng'];
 	//$registrationNo = $_POST['registrationNo'];
 	
 	//echo $reportTopic."<br>"; echo $reportDescription."<br>"; echo $reportCategory."<br>"; echo $reportDate."<br>"; echo $reportTime."<br>"; echo $reportLocation."<br>";
@@ -219,75 +217,89 @@ if(isset($_POST['updateAccident']))
 	//echo $row["maxid"];
 	$maxid = $row["maxid"];
 	$accidentId = $maxid+1;
+	$registrationNo = $_SESSION["username"];
 	
-	// updating data to accident table
-					
-	$updateAccident = "UPDATE accident SET
-							topic = '$reportTopic',
-							category = '$reportCategory',
-							description = '$reportDescription',
-							location = '$reportLocation',
-							date = '$reportDate',
-							time = '$reportTime'
-						WHERE
-							accident_id = $acc_id";
+	$insertaccident = "	INSERT INTO accident (accident_id,topic,category,description,location,lat,lng,date,time) 
+						VALUES (?,?,?,?,?,?,?,?,?)";
 						
-	$resultaccident = mysqli_query($connection,$updateAccident);
+	$insertprepare = mysqli_prepare($connection, $insertaccident);
+	mysqli_stmt_bind_param($insertprepare, 'issssssss', $accidentId, $reportTopic, $reportCategory, $reportDescription, $reportLocation, $reportLat, $reportLng, $reportDate, $reportTime);
+	mysqli_stmt_execute($insertprepare);
 	
-					
-	// updating data to vehicle_accident
-	/*$updatevehicle_accident = "UPDATE vehicle_accident SET
-									registration_no = '$registrationNo'
-								WHERE
-									accident_id = $acc_id";
+	$selectqry = "SELECT * FROM accident WHERE accident_id=?";
+	$stmt = mysqli_prepare($connection, $selectqry);
+	mysqli_stmt_bind_param($stmt,'i', $accidentId);
+	mysqli_stmt_execute($stmt);
+	$result = mysqli_stmt_get_result($stmt);
+						
+	if(mysqli_num_rows($result) > 0){
+		$success_r = true;
+		
+		/*delete vehicle_accident*/
+		$delete_Vehicle_Accident_qry = "DELETE FROM vehicle_accident WHERE accident_id = ? AND registration_no = ?";
+		
+		$stmt = mysqli_prepare($connection, $delete_Vehicle_Accident_qry);
+		mysqli_stmt_bind_param($stmt,'is', $acc_id, $registrationNo);
+		mysqli_stmt_execute($stmt);
+	}else{
+		$success_r = false;
+	}
 	
-	$resultvehicle_accident = mysqli_query($connection,$updatevehicle_accident);*/
+	// Inserting data to vehicle_accident
 						
-	// updating data to accident_photo table
-	$fileCount = count($_FILES['file']['name']); 
-						
-	for($i=0; $i<$fileCount; $i++)
+	$insertvehicle_accident = "INSERT INTO vehicle_accident (accident_id,registration_no) 
+						       VALUES (?,?)";
+	
+	$insertscndprepare = mysqli_prepare($connection, $insertvehicle_accident);
+	mysqli_stmt_bind_param($insertscndprepare, 'is', $accidentId, $registrationNo);
+	mysqli_stmt_execute($insertscndprepare);
+	
+	// Insering data to accident_photo table
+	
+	$fileCount = count($_FILES['file']['name']);
+	@mkdir(__DIR__ . '/upload/' . $accidentId, 0755);
+	$success_u = false;
+	
+	for($i=0;$i<$fileCount;$i++)
 	{
 		$fileName = $_FILES['file']['name'][$i];
-		$filePath = "images/".$accidentId."/".$fileName;
-								
-		$updateaccident_photo = "UPDATE accident_photo SET
-									photo = '$filePath'
-								WHERE
-									accident_id = $acc_id";
+		$fileName_r = preg_replace('/[^a-zA-Z0-9_.]+/','-', $fileName);
+		$filePath = "images/".$accidentId."/".$fileName_r;
+	
+		$insertaccident_photo = "INSERT INTO accident_photo (accident_id,photo) 
+				                 VALUES (?,?)";
 		
-		$resultaccident_photo= mysqli_query($connection,$updateaccident_photo);
-						
-						
-		move_uploaded_file($_FILES['file']['tmp_name'][$i], 'upload/'.$fileName); // Adding images to the local folder 
-	}	
-						
-	if($resultaccident)
-	{
-?>
-		<script> alert("Accident is Updated Successfully"); </script>;
-<?php
-		header("location:useraccount.php");  
+		$insertthrdprepare = mysqli_prepare($connection, $insertaccident_photo);
+		mysqli_stmt_bind_param($insertthrdprepare, 'is', $accidentId, $filePath);
+		mysqli_stmt_execute($insertthrdprepare);
+		
+		if(move_uploaded_file($_FILES['file']['tmp_name'][$i], __DIR__ . '/upload/'. $accidentId .'/'. $fileName)){
+			$success_u = true;
+		}else{
+			$success_u = false;
+		}
 	}
-	else
-	{
+	
+	if($success_r && $success_u){
+		$protocol = empty($_SERVER['HTTPS'])? 'http' : 'https';
+		$host = $_SERVER['HTTP_HOST'];
+		$uri = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
+		$extra = 'useraccount.php';
+		?>
+		<script>
+			alert("Accident is Updated Successfully.");
+			window.location.replace(<?php echo "'"."{$protocol}://{$host}{$uri}/{$extra}"."'"; ?>);
+		</script>
+		<?php
+	}
+	else{
 ?>
-		<script> alert("Error Uploading Iamges"); </script>;
+		<script> alert("Error Uploading Images."); </script>
 <?php
 	}
-}	
-?>					
-
-
-
-
-
-
-
-
-
-
-<script>
+}
+?>
+<script type="text/javascript">
 
 /****************************************Google Location*******************************************************/
 	var map; //Will contain map object.
@@ -340,8 +352,8 @@ if(isset($_POST['updateAccident']))
 		//Get location.
 		var currentLocation = marker.getPosition();
 		//Add lat and lng values to a field that we can save.
-		document.getElementById('lat').value = currentLocation.lat(); //latitude
-		document.getElementById('lng').value = currentLocation.lng(); //longitude
+		document.querySelector("input[name='lat']").value = currentLocation.lat(); //latitude
+		document.querySelector("input[name='lng']").value = currentLocation.lng(); //longitude
 	}
         
         
@@ -349,9 +361,5 @@ if(isset($_POST['updateAccident']))
 	google.maps.event.addDomListener(window, 'load', initMap);
 	
 </script>
-
-
-
-
 </body>
 </html>
