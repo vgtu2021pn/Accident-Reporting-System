@@ -1,7 +1,7 @@
 <?php
-                    $servername = "localhost";                              // Connecting to the database 
-					$user = "root";
-					$pw = "";
+					$servername = "localhost";                              // Connecting to the database 
+					$user = "ardb";
+					$pw = "mypassword";
 					$db = "accidentreportingdb";
 
 					$connection = mysqli_connect($servername, $user, $pw, $db);			
@@ -11,7 +11,7 @@
 						die("Connection failed: " .mysqli_connect_error());
 					}
 					else
-				    {
+					{
 						echo "Connected successfully";
 					}
 					
@@ -40,14 +40,17 @@
 					   
 						   if($regType=="Driver")
 					       {
-						        $selectqry = "SELECT * From vehicle Where reg_no='$usernameLogin'";
-					            $result=mysqli_query($connection,$selectqry);
-								
-								if(mysqli_num_rows($result) > 0)  
+						    $selectqry = "SELECT * FROM vehicle WHERE reg_no=?";
+						    $stmt = mysqli_prepare($connection, $selectqry);
+						    mysqli_stmt_bind_param($stmt,'s', $usernameLogin);
+						    mysqli_stmt_execute($stmt);
+						    $result = mysqli_stmt_get_result($stmt);
+						    
+						    if(mysqli_num_rows($result) > 0)  
                                 {  
                                     while($row = mysqli_fetch_array($result))  
                                         {  
-                                            if(password_verify($passwordLogin, $row["passsword"]))  
+                                            if(password_verify($passwordLogin, $row["password"]))  
                                             {  
                                                 //return true;  
                                                 $_SESSION["username"] = $usernameLogin;  
@@ -69,14 +72,17 @@
 					
 					       elseif($regType=="RDA Staff")
 					       {
-						        $selectqry = "SELECT * From rda_staff Where staff_id='$usernameLogin'";
-					            $result=mysqli_query($connection,$selectqry);
-								
-								if(mysqli_num_rows($result) > 0)  
-                                {  
+						    $selectqry = "SELECT * FROM rda_staff WHERE staff_id=?";
+						    $stmt = mysqli_prepare($connection, $selectqry);
+						    mysqli_stmt_bind_param($stmt,'s', $usernameLogin);
+						    mysqli_stmt_execute($stmt);
+						    $result = mysqli_stmt_get_result($stmt);
+						    
+						    if(mysqli_num_rows($result) > 0)  
+                                {
                                     while($row = mysqli_fetch_array($result))  
                                         {  
-                                            if(password_verify($passwordLogin, $row["passsword"]))  
+                                            if(password_verify($passwordLogin, $row["password"]))  
                                             {  
                                                 //return true;  
                                                 $_SESSION["username"] = $usernameLogin;  
@@ -98,10 +104,13 @@
 					
 					       elseif($regType=="Police Staff")
 					       {
-						        $selectqry = "SELECT * From police_staff Where police_staff_id='$usernameLogin'";
-					            $result=mysqli_query($connection,$selectqry);
-								
-								if(mysqli_num_rows($result) > 0)  
+						    $selectqry = "SELECT * FROM police_staff WHERE police_staff_id=?";
+						    $stmt = mysqli_prepare($connection, $selectqry);
+						    mysqli_stmt_bind_param($stmt,'s', $usernameLogin);
+						    mysqli_stmt_execute($stmt);
+						    $result = mysqli_stmt_get_result($stmt);
+						    
+						    if(mysqli_num_rows($result) > 0)  
                                 {  
                                     while($row = mysqli_fetch_array($result))  
                                         {  
@@ -128,11 +137,14 @@
 					
 					       else
 					       {
-						        $selectqry = "SELECT * From insurance_company Where company_id='$usernameLogin'";
-					            $result=mysqli_query($connection,$selectqry);
-								
-								if(mysqli_num_rows($result) > 0)  
-                                {  
+						        $selectqry = "SELECT * FROM insurance_company WHERE company_id=?";
+							$stmt = mysqli_prepare($connection, $selectqry);
+							mysqli_stmt_bind_param($stmt,'s', $usernameLogin);
+							mysqli_stmt_execute($stmt);
+							$result = mysqli_stmt_get_result($stmt);
+							
+							if(mysqli_num_rows($result) > 0)  
+                                {
                                     while($row = mysqli_fetch_array($result))  
                                         {  
                                             if(password_verify($passwordLogin, $row["password"]))  
@@ -196,20 +208,29 @@
                             <script> alert("Password Fields are not matched"); </script>
 <?php						
 						}
-						else if(strlen($telDriver)!=10 || !is_numeric($telDriver))
+						else if(!is_numeric($telDriver))
 {
 ?>						
                             <script> alert("Incorrect Phone Number Format"); </script>
 <?php						
 						}							
                         else
-                        {							
-						    $insertvehicle = "INSERT INTO vehicle (reg_no,first_name,last_name,address,telephone,dob,driver_nic,license_no,email,vehicle_type,password) 
-						                 VALUES ('$regno','$fnameDriver','$lnameDriver','$addressDriver','$telDriver','$dobDriver','$nicDriver','$licenceno','$mailDriver','$vehicalType','$hashedpwDriver')";
-						    $resultvehicle = mysqli_query($connection,$insertvehicle);
-                         
-                            if($resultvehicle)
-						    {
+                        {
+						    $insertvehicle = "INSERT INTO vehicle (reg_no,password,first_name,last_name,address,telephone,dob,driver_nic,license_no,email,vehicle_type) 
+						                 VALUES (?,?,?,?,?,?,?,?,?,?,?)";
+						    
+						    $insertprepare = mysqli_prepare($connection, $insertvehicle);
+						    mysqli_stmt_bind_param($insertprepare, 'sssssssisss', $regno, $hashedpwDriver, $fnameDriver, $lnameDriver, $addressDriver, $telDriver, $dobDriver, $nicDriver, $licenceno, $mailDriver, $vehicalType);
+						    mysqli_stmt_execute($insertprepare);
+						    
+						    $selectqry = "SELECT * FROM vehicle WHERE reg_no=?";
+						    $stmt = mysqli_prepare($connection, $selectqry);
+						    mysqli_stmt_bind_param($stmt,'s', $regno);
+						    mysqli_stmt_execute($stmt);
+						    $result = mysqli_stmt_get_result($stmt);
+						    
+			    if(mysqli_num_rows($result) > 0)
+			    			    {
 							    echo '<script> alert("Registration Successfully") </script>';
 						    }
 						}
@@ -240,8 +261,22 @@
                         else
                         {
 						    $insertrda_staff = "INSERT INTO rda_staff (staff_id,s_fname,s_lname,s_nic,password) 
-						                    VALUES ('$staffnoRDA','$fnameRDA','$lnameRDA','$nicRDA','$hashedpwRDA')";
-						    $resultrda_staff = mysqli_query($connection,$insertrda_staff);
+						                 VALUES (?,?,?,?,?)";
+						    
+						    $insertprepare = mysqli_prepare($connection, $insertrda_staff);
+						    mysqli_stmt_bind_param($insertprepare, 'sssis', $staffnoRDA, $fnameRDA, $lnameRDA, $nicRDA, $hashedpwRDA);
+						    mysqli_stmt_execute($insertprepare);
+						    
+						    $selectqry = "SELECT * FROM rda_staff WHERE staff_id=?";
+						    $stmt = mysqli_prepare($connection, $selectqry);
+						    mysqli_stmt_bind_param($stmt,'s', $staffnoRDA);
+						    mysqli_stmt_execute($stmt);
+						    $result = mysqli_stmt_get_result($stmt);
+						    
+						    if(mysqli_num_rows($result) > 0)
+			    			    {
+							    echo '<script> alert("Registration Successfully") </script>';
+						    }
 						}
 					}
 					                                                         
@@ -271,8 +306,22 @@
                         else 
                         {							
 						    $insertpolice_staff = "INSERT INTO police_staff (police_staff_id,police_fname,police_lname,police_nic,division,password) 
-						                    VALUES ('$staffnoPolice','$fnamePolice','$lnamePolice','$nicPolice','$divisionPolice','$hashedpwPolice')";
-						    $resultpolice_staff = mysqli_query($connection,$insertpolice_staff);
+						                 VALUES (?,?,?,?,?,?)";
+						    
+						    $insertprepare = mysqli_prepare($connection, $insertpolice_staff);
+						    mysqli_stmt_bind_param($insertprepare, 'sssiss', $staffnoPolice, $fnamePolice, $lnamePolice, $nicPolice, $divisionPolice, $hashedpwPolice);
+						    mysqli_stmt_execute($insertprepare);
+						    
+						    $selectqry = "SELECT * FROM police_staff WHERE police_staff_id=?";
+						    $stmt = mysqli_prepare($connection, $selectqry);
+						    mysqli_stmt_bind_param($stmt,'s', $staffnoPolice);
+						    mysqli_stmt_execute($stmt);
+						    $result = mysqli_stmt_get_result($stmt);
+						    
+						    if(mysqli_num_rows($result) > 0)
+			    			    {
+							    echo '<script> alert("Registration Successfully") </script>';
+						    }
 						}
 					}
 				                                                             	
@@ -301,15 +350,29 @@
                         {	
 						
 						    $insertinsurance_company = "INSERT INTO insurance_company (company_id,company_name,location,password) 
-						                    VALUES ('$regnoCompany','$nameCompany','$locationCompany','$hashedpwCompany')";
-						    $resultinsurance_company = mysqli_query($connection,$insertinsurance_company);
+						                 VALUES (?,?,?,?)";
+						    
+						    $insertprepare = mysqli_prepare($connection, $insertinsurance_company);
+						    mysqli_stmt_bind_param($insertprepare, 'isss', $regnoCompany, $nameCompany, $locationCompany, $hashedpwCompany);
+						    mysqli_stmt_execute($insertprepare);
+						    
+						    $selectqry = "SELECT * FROM insurance_company WHERE company_id=?";
+						    $stmt = mysqli_prepare($connection, $selectqry);
+						    mysqli_stmt_bind_param($stmt,'i', $regnoCompany);
+						    mysqli_stmt_execute($stmt);
+						    $result = mysqli_stmt_get_result($stmt);
+						    
+						    if(mysqli_num_rows($result) > 0)
+			    			    {
+							    echo '<script> alert("Registration Successfully") </script>';
+						    }
 						}
 					}
 ?>
-
-<html>
+<!DOCTYPE html>  
+<html lang="en">
 <head>
-
+	<meta charset="utf-8">
 	<title>Login</title>
 		   
 	<link rel="icon" href="images/car.png" type="image/gif">
@@ -436,7 +499,7 @@ td{
 </div>
 
 <!-- Tab Container -->
-<form name="loginSignupForm" action=""  method="post">
+<form name="loginSignupForm" id="loginSignupForm" action="" method="post">
 <input class="tab-radio" id="main-tab-1" name="main-group" type="radio" checked="checked">
 
 <div class="tab-content" style="margin-left:0%;">
@@ -445,7 +508,7 @@ td{
         <tr style="">
             <div class="" style="width:500px;">  
 			    <td>
-				    <select name="regType" class="form-control">
+				    <select name="regType" id="selRegType" class="form-control">
                         <option value="">--Select Registration Type--</option>
                         <option value="Driver">Driver</option>
                         <option value="RDA Staff">RDA Staff</option>
@@ -465,14 +528,14 @@ td{
 		<tr>
             <div class="" style="width:500px;margin-top:20px;">
                 <td>
-				    <input name="passwordLogin" id="txtPassword" type="password" class="form-control" data-type="password" placeholder="Enter your password">
+				    <input name="passwordLogin" id="txtPassword" type="password" class="form-control" data-type="password" placeholder="Enter your password" autocomplete="off">
 			    </td>
             </div>
         </tr>
         <tr>
             <td>
                 <div class="" style="width:500px; margin:20px;">
-                    <input name="btnLogin" type="submit" class="button" value="Sign In" style="color:white; font-weight:bold;" id="btnSignin" onclick="validateLoginForm()" > <br>
+                    <input name="btnLogin" type="submit" class="button" value="Sign In" style="color:white; font-weight:bold;" id="btnSignin" onclick="JavaScript:return validateLoginForm();" > <br>
                 </div>
                 <div class="hr">
 				</div>
@@ -515,12 +578,12 @@ td{
                         <tr>
                             <td style="padding:0px; width:50%;">
                                 <div class="">
-                                    <input  name="fnameDriver" style="width:100%;" id="txtFname" type="text" class="form-control" placeholder="First Name"/>
+                                    <input  name="fnameDriver" style="width:100%" id="txtFnameDriver" type="text" class="form-control" placeholder="First Name">
                                 </div>
                             </td>
                             <td style="padding:0px 0px 0px 10px; width:50%;">
                                 <div class="">
-                                    <input name="lnameDriver" style="width:100%;" id="txtLname" type="text" class="form-control" placeholder="Last Name"/>
+                                    <input name="lnameDriver" style="width:100%" id="txtLnameDriver" type="text" class="form-control" placeholder="Last Name">
                                 </div>
                             </td>
                         </tr>
@@ -529,7 +592,7 @@ td{
                 <td class="" style="width:50%;">
                     <!--reg no-->
                     <div class="">
-                        <input name="regno" style="width:100%;" id="txtRegNumber" type="text" class="form-control" placeholder="Enter your Vehicle Registration No."/>
+                        <input name="regno" style="width:100%" id="txtRegNumberDriver" type="text" class="form-control" placeholder="Enter your Vehicle Registration No.">
                     </div>
                 </td>
             </tr>
@@ -537,13 +600,13 @@ td{
                 <td class="sign-up-table" style="width:50%;">
                     <!--address-->
                     <div class="">
-                        <input name="addressDriver" id="txtAddress" type="text" class="form-control" placeholder="Enter your Address">
+                        <input name="addressDriver" id="txtAddressDriver" type="text" class="form-control" placeholder="Enter your Address">
                     </div>
                 </td>
                 <td class="sign-up-table">
                     <!--vehi type-->
 					
-					<select name="vehicalType" class="form-control" id="txtVehicleType" placeholder="Enter your Vehicle Type">
+					<select name="vehicalType" class="form-control" id="txtVehicleTypeDriver" placeholder="Enter your Vehicle Type">
 						<option value="0">--Vehicle Type--</option>
 						<option value="Car">Car</option>
 						<option value="Van">Van</option>
@@ -558,25 +621,25 @@ td{
                 <td class="sign-up-table">
                     <!--nic-->
                     <div class="">
-                        <input name="nicDriver" id="txtNIC" type="text" class="form-control" placeholder="Enter your NIC">
+                        <input name="nicDriver" id="txtNICDriver" type="text" class="form-control" placeholder="Enter your NIC">
                     </div>
                 </td>
                 <td class="sign-up-table">
                     <!--pass-->
                     <div class="">
-                        <input name="pwDriver" id="txtSignUpPassword" type="password" class="form-control" data-type="password" placeholder="Create your password">
+                        <input name="pwDriver" id="txtSignUpPasswordDriver" type="password" class="form-control" data-type="password" placeholder="Create your password" autocomplete="off">
                     </div>
                 </td>
             </tr>
             <tr>
                 <td class="sign-up-table">
                     <!--dob-->
-                        <input name="dobDriver" type="text" id="txtDOB" class="form-control" style="" width="100%" placeholder="Enter your Date of Birth" value="">
+                        <input name="dobDriver" type="text" id="txtDOBDriver" class="form-control" style="width:100%" placeholder="Enter your Date of Birth" value="">
                 </td>
                 <td class="sign-up-table">
                     <!--rep pass-->
                     <div class="">
-                        <input name="reppwDriver" id="txtSignUpRepPass" type="password" class="form-control" data-type="password" placeholder="Repeat your password"/>
+                        <input name="reppwDriver" id="txtSignUpRepPassDriver" type="password" class="form-control" data-type="password" placeholder="Repeat your password" autocomplete="off">
                     </div>
                 </td>
             </tr>
@@ -584,13 +647,13 @@ td{
                 <td class="sign-up-table">
                     <!--mail-->
                         <div class="">
-                            <input name="mailDriver" id="txtEmail" type="email" class="form-control" placeholder="Enter your e-mail">
+                            <input name="mailDriver" id="txtEmailDriver" type="email" class="form-control" placeholder="Enter your e-mail">
                         </div>
                 </td>
                 <td class="sign-up-table">
                     <!--tel-->
                     <div class="">
-                        <input name="telDriver" id="txtContact" type="tel" class="form-control" placeholder="Enter your Contact Number">
+                        <input name="telDriver" id="txtContactDriver" type="tel" class="form-control" placeholder="Enter your Contact Number">
                     </div>
                 </td>
             </tr>
@@ -598,7 +661,7 @@ td{
                 <td class="sign-up-table">
                     <!--licenceno-->
                         <div class="">
-                            <input name="licenceno" id="txtEmail" type="text" class="form-control" placeholder="Enter your licence no">
+                            <input name="licenceno" id="txtLicenseDriver" type="text" class="form-control" placeholder="Enter your licence no">
                         </div>
                 </td>
 				<td> </td>
@@ -606,7 +669,7 @@ td{
             <tr>
                 <td colspan="2" class="sign-up-table">
                     <div class="" style="margin:20px;">
-                        <input name="btnSignUpDriver" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUp" onclick="validateSignupDriverForm()">
+                        <input name="btnSignUpDriver" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUpDriver" onclick="JavaScript:return validateSignupDriverForm();">
                     </div>
                     <div class="hr">
 					</div>
@@ -630,12 +693,12 @@ td{
                             <tr>
                                 <td style="padding:0px; width:50%;">
                                 <div class="">
-                                    <input name="fnameRDA" style="width:100%;" id="txtFname" type="text" class="form-control" placeholder="First Name"/>
+                                    <input name="fnameRDA" style="width:100%" id="txtFnameRDA" type="text" class="form-control" placeholder="First Name">
                                 </div>
 								</td>
 								<td style="padding:0px 0px 0px 10px; width:50%;">
 									<div class="">
-										<input name="lnameRDA" style="width:100%;" id="txtLname" type="text" class="form-control" placeholder="Last Name"/>
+										<input name="lnameRDA" style="width:100%;" id="txtLnameRDA" type="text" class="form-control" placeholder="Last Name">
 									</div>
 								</td>
                             </tr>
@@ -644,7 +707,7 @@ td{
                 <td class="sign-up-table" style="width:50%;">
                     <!--staff no-->
                     <div class="">
-                        <input  name="staffnoRDA" style="width:100%;" id="txtStaffNumber" type="text" class="form-control" placeholder="Enter your Staff Registration No.">
+                        <input name="staffnoRDA" style="width:100%" id="txtStaffNumberRDA" type="text" class="form-control" placeholder="Enter your Staff Registration No.">
                     </div>
                 </td>
             </tr>
@@ -659,7 +722,7 @@ td{
 			<td class="sign-up-table">
                     <!--pass-->
                     <div class="">
-                        <input name="pwRDA" id="txtSignUpPassword" type="password" class="form-control" data-type="password" placeholder="Create your password">
+                        <input name="pwRDA" id="txtSignUpPasswordRDA" type="password" class="form-control" data-type="password" placeholder="Create your password" autocomplete="off">
                     </div>
                 </td>
             </tr>
@@ -667,14 +730,14 @@ td{
 			 <td class="sign-up-table">
                     <!--rep pass-->
                     <div class="">
-                        <input name="reppwRDA" id="txtSignUpRepPass" type="password" class="form-control" data-type="password" placeholder="Repeat your password"/>
+                        <input name="reppwRDA" id="txtSignUpRepPassRDA" type="password" class="form-control" data-type="password" placeholder="Repeat your password" autocomplete="off">
                     </div>
                 </td>
 			</tr>
 			<tr>
 		     <td colspan="2" class="sign-up-table">
 					<div class="group" style="margin:20px;">
-						<input name="btnSignUpRDA" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUp" onclick="validateSignupRDAForm()">
+						<input name="btnSignUpRDA" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUpRDA" onclick="JavaScript:return validateSignupRDAForm();">
 					</div>
 					<div class="hr">
 					</div>
@@ -698,12 +761,12 @@ td{
                     <tr>
                         <td style="padding:0px; width:50%;">
                             <div class="">
-                                <input name="fnamePolice" style="width:100%;" id="txtFname" type="text" class="form-control" placeholder="First Name"/>
+                                <input name="fnamePolice" style="width:100%" id="txtFnamePolice" type="text" class="form-control" placeholder="First Name">
                             </div>
                         </td>
                         <td style="padding:0px 0px 0px 10px; width:50%;">
                             <div class="">
-                                <input name="lnamePolice" style="width:100%;" id="txtLname" type="text" class="form-control" placeholder="Last Name"/>
+                                <input name="lnamePolice" style="width:100%" id="txtLnamePolice" type="text" class="form-control" placeholder="Last Name">
                             </div>
                         </td>
                     </tr>
@@ -712,7 +775,7 @@ td{
             <td class="sign-up-table" style="width:50%;">
                 <!--staff no-->
                 <div class="" >
-                    <input name="staffnoPolice" style="width:100%;" id="txtStaffNumber" type="text" class="form-control" placeholder="Enter your Staff Registration No.">
+                    <input name="staffnoPolice" style="width:100%" id="txtStaffNumberPolice" type="text" class="form-control" placeholder="Enter your Staff Registration No.">
                 </div>
             </td>
         </tr>
@@ -720,13 +783,13 @@ td{
             <td class="sign-up-table">
                 <!--nic-->
                 <div class="">
-                    <input name="nicPolice" id="txtNIC" type="text" class="form-control" placeholder="Enter your NIC">
+                    <input name="nicPolice" id="txtNICPolice" type="text" class="form-control" placeholder="Enter your NIC">
                 </div>
             </td>
 			<td class="sign-up-table">
                 <!--division-->
                 <div class="">
-                    <input name="divisionPolice" id="txtNIC" type="text" class="form-control" placeholder="Enter your Division"/>
+                    <input name="divisionPolice" id="txtDivisionPolice" type="text" class="form-control" placeholder="Enter your Division">
                 </div>									
 		    </td>
 		</tr>
@@ -734,21 +797,21 @@ td{
 		<td class="sign-up-table">
                     <!--pass-->
                     <div class="">
-                        <input name="pwPolice" id="txtSignUpPassword" type="password" class="form-control" data-type="password" placeholder="Create your password">
+                        <input name="pwPolice" id="txtSignUpPasswordPolice" type="password" class="form-control" data-type="password" placeholder="Create your password" autocomplete="off">
                     </div>
                 </td>
             
 			 <td class="sign-up-table">
                     <!--rep pass-->
                     <div class="">
-                        <input name="reppwPolice" id="txtSignUpRepPass" type="password" class="form-control" data-type="password" placeholder="Repeat your password"/>
+                        <input name="reppwPolice" id="txtSignUpRepPassPolice" type="password" class="form-control" data-type="password" placeholder="Repeat your password" autocomplete="off">
                     </div>
                 </td>
 			</tr>
 		<tr>
             <td colspan="2" class="sign-up-table">
                 <div class="group" style="margin:20px;">
-                    <input  name="btnSignUpPolice" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUp" onclick="validateSignupPoliceForm()" />
+                    <input  name="btnSignUpPolice" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUpPolice" onclick="JavaScript:return validateSignupPoliceForm();" />
                 </div>
                 <div class="hr"></div>
                 <div class="foot">
@@ -768,14 +831,14 @@ td{
 		<td class="sign-up-table" style="width:500px;">
                     <!--company name-->
                     <div class="">
-                        <input  style=";" name="nameCompany" id="txtSignUpPassword" type="text" class="form-control" data-type="text" placeholder="Enter Your Company Name">
+                        <input  name="nameCompany" id="txtCompanyName" style="width:100%" type="text" class="form-control" data-type="text" placeholder="Enter Your Company Name">
                     </div>
                 </td>
             
 			 <td class="sign-up-table" style="width:500px;">
                     <!--reg no-->
                     <div class="">
-                        <input style="" name="regnoCompany" id="txtSignUpRepPass" type="text" class="form-control" data-type="text" placeholder="Enter Your Registration No."/>
+                        <input name="regnoCompany" id="txtCompanyRegNo" style="width:100%" type="text" class="form-control" data-type="text" placeholder="Enter Your Registration No.">
                     </div>
                 </td>
 			</tr>
@@ -783,13 +846,13 @@ td{
                 <td class="sign-up-table">
 					<!--location-->
 					<div class="">
-						<input  name="locationCompany" id="txtNIC" type="text" class="form-control" placeholder="Enter your Location"/>
+						<input  name="locationCompany" id="txtLocationCompany" type="text" class="form-control" placeholder="Enter your Location">
 					</div>											
 				</td>
 				<td class="sign-up-table">
                     <!--pass-->
                     <div class="">
-                        <input name="pwCompany" id="txtSignUpPassword" type="password" class="form-control" data-type="password" placeholder="Create your password">
+                        <input name="pwCompany" id="txtSignUpPasswordCompany" type="password" class="form-control" data-type="password" placeholder="Create your password" autocomplete="off">
                     </div>
                 </td>
 			</tr>
@@ -797,7 +860,7 @@ td{
 		        <td class="sign-up-table">
                     <!--rep pass-->
                     <div class="">
-                        <input name="reppwCompany" id="txtSignUpRepPass" type="password" class="form-control" data-type="password" placeholder="Repeat your password"/>
+                        <input name="reppwCompany" id="txtSignUpRepPassCompany" type="password" class="form-control" data-type="password" placeholder="Repeat your password" autocomplete="off">
                     </div>
                 </td>
 				<td> </td>
@@ -806,7 +869,7 @@ td{
 			<tr>
 				<td colspan="2" class="sign-up-table">
 					<div class="group" style="margin:20px;">
-						<input name="btnSignUpCompany" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUp" onclick="validateSignupInsuranceCompanyForm()"/>
+						<input name="btnSignUpCompany" type="submit" class="button" value="Sign Up" style="color:white; font-weight:bold;" id="btnSignUpCompany" onclick="JavaScript:return validateSignupInsuranceCompanyForm();"/>
 					</div>
 					<div class="hr"></div>
 					<div class="foot">
@@ -820,5 +883,295 @@ td{
 </form>
 </div>
 </center>
+<script type="text/javascript">
+	function validateLoginForm() {
+	    var succeed = true;
+	    var reg_type_v = $( "#selRegType" ).val();
+	    var reg_no = document.querySelector( "input[name='usernameLogin']" );
+	    let reg_no_v = reg_no.value;
+	    var pass = document.querySelector( "input[name='passwordLogin']" );
+	    let pass_v = pass.value;
+	    
+	    let arr = ["Driver", "RDA Staff", "Police Staff", "Insurance Company"];
+	    let lUnsafeCharacters = /[\W|_]/g;
+	    
+	    if (jQuery.inArray(reg_type_v, arr) == -1){
+		alert('Wrong selection.');
+		succeed = false;
+	    }// end if
+	    if (reg_no_v.length > 16 || pass_v.length > 254){
+		alert('Too long.');
+		succeed = false;
+	    }// end if
+	    if (reg_no_v.search(lUnsafeCharacters) > -1 || pass_v.search(lUnsafeCharacters) > -1){
+		alert('Special characters are not allowed.');
+		succeed = false;
+	    }// end if
+	    
+	    if(succeed == true){
+		document.getElementById('loginSignupForm').name='btnLogin';
+		document.getElementById('loginSignupForm').action='';
+		document.getElementById('loginSignupForm').submit();
+		return(true);
+	    }else{
+		return(false);
+	    }
+	}
+	
+	function validateSignupDriverForm() {
+	    var succeed = true;
+	    var frt_name = document.querySelector( "input[name='fnameDriver']" );
+	    let frt_name_v = frt_name.value;
+	    var lst_name = document.querySelector( "input[name='lnameDriver']" );
+	    let lst_name_v = lst_name.value;
+	    var rgn_no = document.querySelector( "input[name='regno']" );
+	    let rgn_no_v = rgn_no.value;
+	    var ads = document.querySelector( "input[name='addressDriver']" );
+	    let ads_v = ads.value;
+	    var nic = document.querySelector( "input[name='nicDriver']" );
+	    let nic_v = nic.value;
+	    var pwd = document.querySelector( "input[name='pwDriver']" );
+	    let pwd_v = pwd.value;
+	    var rtpwd = document.querySelector( "input[name='reppwDriver']" );
+	    let rtpwd_v = rtpwd.value;
+	    var dofh = document.querySelector( "input[name='dobDriver']" );
+	    let dofh_v = dofh.value;
+	    var e_ml = document.querySelector( "input[name='mailDriver']" );
+	    let e_ml_v = e_ml.value;
+	    var te = document.querySelector( "input[name='telDriver']" );
+	    let te_v = te.value;
+	    var le = document.querySelector( "input[name='licenceno']" );
+	    let le_v = le.value;
+	    var veh_typ_v = $( "#txtVehicleTypeDriver" ).val();
+	    	    
+	    let arr = ["Car", "Van", "Motorbike", "Truck", "Bus"];
+	    let lUnsafeCharacters = /[\W|_]/g;
+	    let ldate = /^\d{4}-\d{2}-\d{2}$/;
+	    let lemail = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-z\-0-9]+\.)+[a-z]{2,}))$/;
+	    
+	    if (jQuery.inArray(veh_typ_v, arr) == -1){
+		alert('Wrong selection.');
+		succeed = false;
+	    }// end if
+	    if (rgn_no_v.length < 1 || rgn_no_v.length > 11){
+		alert('Incorrect registration number.');
+		succeed = false;
+	    }// end if
+	    if (frt_name_v.length <= 2 || frt_name_v.length > 30){
+		alert('Incorrect first name.');
+		succeed = false;
+	    }// end if
+	    if (lst_name_v != '' && lst_name_v.length > 100){
+		alert('Incorrect last name.');
+		succeed = false;
+	    }// end if
+	    if (ads_v.length < 1 || ads_v.length > 255){
+		alert('Incorrect address.');
+		succeed = false;
+	    }// end if
+	    if (te_v.length < 1 || te_v.length > 13){
+		alert('Incorrect telephone number.');
+		succeed = false;
+	    }// end if
+	    if (nic_v.length != 11){
+		alert('Incorrect NIC.');
+		succeed = false;
+	    }// end if
+	    if (le_v.length < 2 || le_v.length > 7){
+		alert('Incorrect license plate number.');
+		succeed = false;
+	    }// end if
+	    if (!ldate.test(dofh_v)){
+		alert('Incorrect date of birth (YYYY-MM-DD).');
+		succeed = false;
+	    }// end if
+	    if (!lemail.test(e_ml_v)){
+		alert('Incorrect e-mail (name@host.domain).');
+		succeed = false;
+	    }// end if
+	    if (pwd_v.search(lUnsafeCharacters) > -1 || rgn_no_v.search(lUnsafeCharacters) > -1){
+		alert('Special characters are not allowed.');
+		succeed = false;
+	    }// end if
+	    
+	    if(succeed == true){
+		document.getElementById('loginSignupForm').name='btnSignUpDriver';
+		document.getElementById('loginSignupForm').action='';
+		document.getElementById('loginSignupForm').submit();
+		return(true);
+	    }else{
+		return(false);
+	    }
+	}
+
+	function validateSignupRDAForm() {
+	    var succeed = true;
+	    var frt_name = document.querySelector( "input[name='fnameRDA']" );
+	    let frt_name_v = frt_name.value;
+	    var lst_name = document.querySelector( "input[name='lnameRDA']" );
+	    let lst_name_v = lst_name.value;
+	    var stf_no = document.querySelector( "input[name='staffnoRDA']" );
+	    let stf_no_v = stf_no.value;
+	    var nic = document.querySelector( "input[name='nicRDA']" );
+	    let nic_v = nic.value;
+	    var pwd = document.querySelector( "input[name='pwRDA']" );
+	    let pwd_v = pwd.value;
+	    var rtpwd = document.querySelector( "input[name='reppwRDA']" );
+	    let rtpwd_v = rtpwd.value;
+	    
+	    let lUnsafeCharacters = /[\W|_]/g;
+	    
+	    if (stf_no_v.length < 1 || stf_no_v.length > 20){
+		alert('Incorrect registration number.');
+		succeed = false;
+	    }// end if
+	    if (frt_name_v.length <= 2 || frt_name_v.length > 30){
+		alert('Incorrect first name.');
+		succeed = false;
+	    }// end if
+	    if (lst_name_v != '' && lst_name_v.length > 100){
+		alert('Incorrect last name.');
+		succeed = false;
+	    }// end if
+	    if (nic_v.length != 11){
+		alert('Incorrect NIC.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v.search(lUnsafeCharacters) > -1 || stf_no_v.search(lUnsafeCharacters) > -1){
+		alert('Special characters are not allowed.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v == '' || rtpwd_v == ''){
+		alert('Password is not provided.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v != rtpwd_v){
+		alert('Passwords does not match.');
+		succeed = false;
+	    }// end if
+	    
+	    if(succeed == true){
+		document.getElementById('loginSignupForm').name='btnSignUpRDA';
+		document.getElementById('loginSignupForm').action='';
+		document.getElementById('loginSignupForm').submit();
+		return(true);
+	    }else{
+		return(false);
+	    }
+	}
+
+	function validateSignupPoliceForm() {
+	    var succeed = true;
+	    var frt_name = document.querySelector( "input[name='fnamePolice']" );
+	    let frt_name_v = frt_name.value;
+	    var lst_name = document.querySelector( "input[name='lnamePolice']" );
+	    let lst_name_v = lst_name.value;
+	    var stf_no = document.querySelector( "input[name='staffnoPolice']" );
+	    let stf_no_v = stf_no.value;
+	    var nic = document.querySelector( "input[name='nicPolice']" );
+	    let nic_v = nic.value;
+	    var dion = document.querySelector( "input[name='divisionPolice']" );
+	    let dion_v = dion.value;
+	    var pwd = document.querySelector( "input[name='pwPolice']" );
+	    let pwd_v = pwd.value;
+	    var rtpwd = document.querySelector( "input[name='reppwPolice']" );
+	    let rtpwd_v = rtpwd.value;
+	    
+	    let lUnsafeCharacters = /[\W|_]/g;
+	    
+	    if (stf_no_v.length < 1 || stf_no_v.length > 20){
+		alert('Incorrect registration number.');
+		succeed = false;
+	    }// end if
+	    if (frt_name_v.length <= 2 || frt_name_v.length > 30){
+		alert('Incorrect first name.');
+		succeed = false;
+	    }// end if
+	    if (lst_name_v != '' && lst_name_v.length > 100){
+		alert('Incorrect last name.');
+		succeed = false;
+	    }// end if
+	    if (nic_v.length != 11){
+		alert('Incorrect NIC.');
+		succeed = false;
+	    }// end if
+	    if (dion_v.length <= 2 || dion_v.length > 40){
+		alert('Incorrect division name.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v.search(lUnsafeCharacters) > -1 || stf_no_v.search(lUnsafeCharacters) > -1){
+		alert('Special characters are not allowed.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v == '' || rtpwd_v == ''){
+		alert('Password is not provided.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v != rtpwd_v){
+		alert('Passwords does not match.');
+		succeed = false;
+	    }// end if
+	    
+	    if(succeed == true){
+		document.getElementById('loginSignupForm').name='btnSignUpPolice';
+		document.getElementById('loginSignupForm').action='';
+		document.getElementById('loginSignupForm').submit();
+		return(true);
+	    }else{
+		return(false);
+	    }
+	}
+	
+	function validateSignupInsuranceCompanyForm() {
+	    var succeed = true;
+	    var name = document.querySelector( "input[name='nameCompany']" );
+	    let name_v = name.value;
+	    var ln_cy = document.querySelector( "input[name='locationCompany']" );
+	    let ln_cy_v = ln_cy.value;
+	    var rn_no = document.querySelector( "input[name='regnoCompany']" );
+	    let rn_no_v = rn_no.value;
+	    var pwd = document.querySelector( "input[name='pwCompany']" );
+	    let pwd_v = pwd.value;
+	    var rtpwd = document.querySelector( "input[name='reppwCompany']" );
+	    let rtpwd_v = rtpwd.value;
+	    
+	    let lUnsafeCharacters = /[\W|_]/g;
+	    
+	    if (rn_no_v.length < 1 || rn_no_v.length > 10){
+		alert('Incorrect registration number.');
+		succeed = false;
+	    }// end if
+	    if (name_v.length <= 1 || name_v.length > 160){
+		alert('Name of your Company is incorrect.');
+		succeed = false;
+	    }// end if
+	    if (ln_cy_v.length < 3 && ln_cy_v.length > 50){
+		alert('Incorrect location.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v.search(lUnsafeCharacters) > -1 || rn_no_v.search(lUnsafeCharacters) > -1){
+		alert('Special characters are not allowed.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v == '' || rtpwd_v == ''){
+		alert('Password is not provided.');
+		succeed = false;
+	    }// end if
+	    if (pwd_v != rtpwd_v){
+		alert('Passwords does not match.');
+		succeed = false;
+	    }// end if
+	    
+	    if(succeed == true){
+		document.getElementById('loginSignupForm').name='btnSignUpCompany';
+		document.getElementById('loginSignupForm').action='';
+		document.getElementById('loginSignupForm').submit();
+		return(true);
+	    }else{
+		return(false);
+	    }
+	}
+
+</script>
 </body>
 </html>
