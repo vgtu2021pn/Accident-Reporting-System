@@ -7,8 +7,8 @@
 	}
 
     $servername = "localhost";                              // Connecting to the database 
-	$user = "root";
-	$pw = "";
+	$user = "ardb";
+	$pw = "mypassword";
 	$db = "accidentreportingdb";
 
 	$connection = mysqli_connect($servername, $user, $pw, $db);			
@@ -19,20 +19,19 @@
 
 ?>
 
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head> 
-
+	<meta charset="utf-8">
 	<title>Accident Analysis</title>
 	
 	<link rel="icon" href="images/car.png" type="image/gif">
 
-	<link rel="stylesheet" type="text/css" href="src/The Smart Parking System.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
 	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-	<script src="src/jquery-1.9.1.min.js"></script>
+	<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 
 </head>
 <body style="background: #173457;">
@@ -60,7 +59,16 @@
 	<?php
 		
 		/****************************************************************Accident Type****************************************************************/
-		$selectAccType = "SELECT category FROM accident";
+		$selectAccType = "SELECT
+							category
+						FROM
+							accident
+						WHERE
+							accident_id
+						IN
+							(SELECT accident_id FROM vehicle_accident WHERE accident_id
+						IN 
+							(SELECT accident_id FROM accident));";
 		$result1 = mysqli_query($connection, $selectAccType);
 		
 		if(mysqli_num_rows($result1)>0)
@@ -86,11 +94,11 @@
 				{
 					$c++;
 				}
-				else if($row1["category"] == 'Sideswipe Collisions')
+				else if($row1["category"] == 'Sideswipe Accidents')
 				{
 					$d++;
 				}
-				else if($row1["category"] == 'Single-Vehicle Collisions')
+				else if($row1["category"] == 'Single-Vehicle Accidents')
 				{
 					$e++;
 				}
@@ -100,6 +108,7 @@
 			}
 		}
 		
+		mysqli_free_result($result1);
 		
 		/****************************************************************Vehicle Type****************************************************************/
 		$selectVehType = "SELECT
@@ -109,7 +118,7 @@
 						WHERE
 							reg_no
 						IN
-							(SELECT reg_no FROM vehicle_accident WHERE accident_id
+							(SELECT registration_no AS reg_no FROM vehicle_accident WHERE accident_id
 						IN 
 							(SELECT accident_id FROM accident));";
 		$result2 = mysqli_query($connection, $selectVehType);/*vehicle type involved in accidents*/
@@ -151,35 +160,50 @@
 			}
 		}
 		
+		mysqli_free_result($result2);
 		
 		/****************************************************************Fluctuation****************************************************************/
 		
+		$three_years_before = (int)date("Y") - 3;
+		$two_years_before = (int)date("Y") - 2;
+		$one_year_before = (int)date("Y") - 1;
+		$today = (int)date("Y");
+		$after_one_year = (int)date("Y") + 1;
 		
-		$selectFluct2018 = "SELECT COUNT(date) FROM accident WHERE date LIKE '______2018'";
-		$result3 = mysqli_query($connection, $selectFluct2018);
+		$selectFluctThreeYears = "SELECT COUNT(REGEXP_INSTR(date, '[0-9]{4}')) AS stats FROM accident WHERE date = " . $three_years_before . " AND accident_id IN (SELECT accident_id FROM vehicle_accident)";
+		$result3 = mysqli_query($connection, $selectFluctThreeYears);
 		
 		$m = mysqli_fetch_array($result3);
 		
-		$selectFluct2019 = "SELECT COUNT(date) FROM accident WHERE date LIKE '______2019'";
-		$result4 = mysqli_query($connection, $selectFluct2019);
+		mysqli_free_result($result3);
+		
+		$selectFluctTwoYears = "SELECT COUNT(REGEXP_INSTR(date, '[0-9]{4}')) AS stats FROM accident WHERE date = " . $two_years_before . " AND accident_id IN (SELECT accident_id FROM vehicle_accident)";
+		$result4 = mysqli_query($connection, $selectFluctTwoYears);
 		
 		$n = mysqli_fetch_array($result4);
 		
-		$selectFluct2020 = "SELECT COUNT(date) FROM accident WHERE date LIKE '______2020'";
-		$result5 = mysqli_query($connection, $selectFluct2020);
+		mysqli_free_result($result4);
+		
+		$selectFluctOneYear = "SELECT COUNT(REGEXP_INSTR(date, '[0-9]{4}')) AS stats FROM accident WHERE date = " . $one_year_before . " AND accident_id IN (SELECT accident_id FROM vehicle_accident)";
+		$result5 = mysqli_query($connection, $selectFluctOneYear);
 		
 		$o = mysqli_fetch_array($result5);
-
-		$selectFluct2021 = "SELECT COUNT(date) FROM accident WHERE date LIKE '______2021'";
-		$result6 = mysqli_query($connection, $selectFluct2021);
+		
+		mysqli_free_result($result5);
+		
+		$selectFluctToday = "SELECT COUNT(REGEXP_INSTR(date, '[0-9]{4}')) AS stats FROM accident WHERE date = " . $today . " AND accident_id IN (SELECT accident_id FROM vehicle_accident)";
+		$result6 = mysqli_query($connection, $selectFluctToday);
 		
 		$p = mysqli_fetch_array($result6);
-	
-		$selectFluct2022 = "SELECT COUNT(date) FROM accident WHERE date LIKE '______2022'";
-		$result7 = mysqli_query($connection, $selectFluct2022);
+		
+		mysqli_free_result($result6);
+		
+		$selectFluctAfter = "SELECT COUNT(REGEXP_INSTR(date, '[0-9]{4}')) AS stats FROM accident WHERE date = " . $after_one_year . " AND accident_id IN (SELECT accident_id FROM vehicle_accident)";
+		$result7 = mysqli_query($connection, $selectFluctAfter);
 		
 		$q = mysqli_fetch_array($result7);
 		
+		mysqli_free_result($result7);
 		
 		/****************************************************************Accident Type****************************************************************/
 		$dataPoints_for_PieChart = array( 
@@ -187,7 +211,7 @@
 			array("label"=>"Head-On Collisions", "y"=> ($b/$f)*100),
 			array("label"=>"Side-Impact Collisions", "y"=> ($c/$f)*100),
 			array("label"=>"Sideswipe Accidents", "y"=> ($d/$f)*100),
-			array("label"=>"Single-Vehicle Accidents", "y"=> ($e/$f)*100)
+			array("label"=>"Single-Vehicle Accidents", "y"=> ($e/$f)*100),
 		);
 		
 		
@@ -203,13 +227,18 @@
 		
 		/****************************************************************Fluctuation****************************************************************/
 		$dataPoints = array(
-			array("y" => $m['COUNT(date)'], "label" => "2018"),
-			array("y" => $n['COUNT(date)'], "label" => "2019"),
-			array("y" => $o['COUNT(date)'], "label" => "2020"),
-			array("y" => $p['COUNT(date)'], "label" => "2021"),
-			array("y" => $q['COUNT(date)'], "label" => "2022")
+			array("label" => $three_years_before, "y" => $m['stats']),
+			array("label" => $two_years_before, "y" => $n['stats']),
+			array("label" => $one_year_before, "y" => $o['stats']),
+			array("label" => $today, "y" => $p['stats']),
+			array("label" => $after_one_year, "y" => $q['stats']),
 		);
-
+		
+		echo var_export($m['stats']);
+		echo var_export($n['stats']);
+		echo var_export($o['stats']);
+		echo var_export($p['stats']);
+		echo var_export($q['stats']);
 	?>
 	
 	
@@ -224,7 +253,7 @@
 					text: "Accident Type"
 				},
 				subtitles: [{
-					text: "Year 2022"
+					text: "Year " + <?php echo '"'.$today.'"'; ?>
 				}],
 				data: [{
 					type: "pie",
@@ -243,7 +272,7 @@
 					text: "Vehicle Type"
 				},
 				subtitles: [{
-					text: "Year 2022"
+					text: "Year " + <?php echo '"'.$today.'"'; ?>
 				}],
 				data: [{
 					type: "pie",
@@ -284,14 +313,13 @@
 					<!--****************************************************************Accident Type************************************************************-->
 					<td style="padding: 20px;">
 						<div id="chartContainer_PieChart" style="height: 400px; width: 600px; border: 1px solid black;"></div>
-						<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+						
 					</td>
 					
 					
 					<!--****************************************************************Vehicle Type************************************************************-->
 					<td style="padding: 20px;">
 						<div id="chartContainer_PieChart1" style="height: 400px; width: 600px; border: 1px solid black;"></div>
-						<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 					</td>
 				</tr>
 			
@@ -300,7 +328,6 @@
 					<!--****************************************************************Fluctuation************************************************************-->
 					<td colspan=2 style="padding: 20px;">
 						<div id="chartContainer" style="height: 370px; width: 100%; border: 1px solid black;"></div>
-						<script src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
 					</td>
 				</tr>
 			</table>
@@ -308,6 +335,4 @@
 	</center>
 
 </body>
-</html>  
-
-
+</html>
