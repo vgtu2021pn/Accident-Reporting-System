@@ -7,8 +7,8 @@
  } 
 
                     $servername = "localhost";                              // Connecting to the database 
-					$user = "root";
-					$pw = "";
+					$user = "ardb";
+					$pw = "mypassword";
 					$db = "accidentreportingdb";
 
 					$connection = mysqli_connect($servername, $user, $pw, $db);			
@@ -24,8 +24,9 @@
  ?>  
  
 <!DOCTYPE html>  
-<html>  
-<head>  
+<html lang="en">  
+<head>
+	<meta charset="utf-8">
 	<title>My Account</title>
 		   
 	<link rel="icon" href="images/car.png" type="image/gif">
@@ -93,7 +94,7 @@
 			</ul>
 			
 			<ul class="nav navbar-nav navbar-right">
-				<li class="active"><a href="#"><span class="glyphicon glyphicon-user"></span> <?php echo $_SESSION["username"]; ?> </a></li>
+				<li class="active"><a href="#"><span class="glyphicon glyphicon-user"></span> <?php echo htmlentities($_SESSION["username"], ENT_QUOTES, 'UTF-8'); ?> </a></li>
 				<li><a href="logout.php"><span class="glyphicon glyphicon-log-in"></span> Log Out</a></li>
 			</ul>
 		</div>
@@ -101,17 +102,29 @@
 	
 <?php
 
-	/****************************************************************Update & Delete**********************************************************************/
+	/****************************************************************Delete**********************************************************************/
 
-	if(isset($_POST['delete']))   
+	if(isset($_POST['delete']))
 	{
-		$acc_id = $_POST['acc_id'];
+		$acc_id = (int)$_POST['acc_id'];
+		$username = $_SESSION["username"];
 		
 		/*delete vehicle_accident*/
-		$delete_Vehicle_Accident_qry = "DELETE FROM vehicle_accident WHERE accident_id = $acc_id";
-		$result_delete_Vehicle_Accident = mysqli_query($connection, $delete_Vehicle_Accident_qry);
+		$delete_Vehicle_Accident_qry = "DELETE FROM vehicle_accident WHERE accident_id = ? AND registration_no = ?";
 		
-		if($result_delete_Vehicle_Accident)
+		$stmt = mysqli_prepare($connection, $delete_Vehicle_Accident_qry);
+		mysqli_stmt_bind_param($stmt,'is', $acc_id, $username);
+		mysqli_stmt_execute($stmt);
+		
+		$sel_Vehicle_Accident_qry = "SELECT accident_id FROM vehicle_accident WHERE accident_id = ? AND registration_no = ?";
+		
+		$stmtt = mysqli_prepare($connection, $sel_Vehicle_Accident_qry);
+		mysqli_stmt_bind_param($stmtt,'is', $acc_id, $username);
+		mysqli_stmt_execute($stmtt);
+		
+		$result_sel_Vehicle_Accident = mysqli_stmt_get_result($stmtt);
+		
+		if(mysqli_num_rows($result_sel_Vehicle_Accident) == 0)
 		{
 			header("refresh: 3");
 ?>
@@ -136,16 +149,6 @@
 	<div class="container" style="width: 100%; color: white; display: flex;">
 
 		<?php  
-			$selectqry = "SELECT first_name,last_name as maxid from vehicle";
-			$result=mysqli_query($connection,$selectqry);
-			
-			$row=mysqli_fetch_assoc($result);
-			
-			$name = $row["first_name"];
-			
-			
-			/*echo '<label><a href="logout.php">Logout</a></label>';*/
-			
 			$username = $_SESSION["username"];
 			
 			$selectUserDataqry = "SELECT 
@@ -160,13 +163,15 @@
 								FROM
 									vehicle
 								WHERE
-									reg_no = '$username'";
-			$resultUserData = mysqli_query($connection, $selectUserDataqry);
+									reg_no = ?";
+			
+			$stmt = mysqli_prepare($connection, $selectUserDataqry);
+			mysqli_stmt_bind_param($stmt,'s', $username);
+			mysqli_stmt_execute($stmt);
+			$resultUserData = mysqli_stmt_get_result($stmt);
 			
 			$rowUserData = mysqli_fetch_assoc($resultUserData);
-			
 		?>
-		
 		
 		<!--****************************************************************User data*****************************************************************-->
 		
@@ -180,14 +185,14 @@
 				
 				<tr>
 					<td class="user-cell" align="center" colspan=2>
-						<h1>Welcome - <?php echo $username; ?></h1>
+						<h1>Welcome - <?php echo htmlentities($username, ENT_QUOTES, 'UTF-8'); ?></h1>
 					</td>
 				</tr>
 				
 				<tr>
 					<td class="user-cell"style="width: 50%"><b>Name:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['fullname']; ?>
+						<?php echo htmlentities($rowUserData['fullname'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 				
@@ -198,7 +203,7 @@
 				<tr>
 					<td class="user-cell"><b>Address:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['address']; ?>
+						<?php echo htmlentities($rowUserData['address'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 				
@@ -209,7 +214,7 @@
 				<tr>
 					<td class="user-cell"><b>Telephone:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['telephone']; ?>
+						<?php echo htmlentities($rowUserData['telephone'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 				
@@ -220,7 +225,7 @@
 				<tr>
 					<td class="user-cell"><b>Date of Birth:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['dob']; ?>
+						<?php echo htmlentities($rowUserData['dob'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 				
@@ -231,7 +236,7 @@
 				<tr>
 					<td class="user-cell"><b>NIC:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['driver_nic']; ?>
+						<?php echo htmlentities($rowUserData['driver_nic'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 				
@@ -242,7 +247,7 @@
 				<tr>
 					<td class="user-cell"><b>License No:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['license_no']; ?>
+						<?php echo htmlentities($rowUserData['license_no'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 				
@@ -253,7 +258,7 @@
 				<tr>
 					<td class="user-cell"><b>Vehicle Type:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['vehicle_type']; ?>
+						<?php echo htmlentities($rowUserData['vehicle_type'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 				
@@ -264,7 +269,7 @@
 				<tr>
 					<td class="user-cell"><b>E-mail:</b></td>
 					<td class="user-cell">
-						<?php echo $rowUserData['email']; ?>
+						<?php echo htmlentities($rowUserData['email'], ENT_QUOTES, 'UTF-8'); ?>
 					</td>
 				</tr>
 		
@@ -277,31 +282,38 @@
 		<div style="width: 55%; margin-left: 100px;">
 			<table class="view-table" border=0>
 <?php
-				$selectHistoryqry = "SELECT * FROM accident WHERE accident_id IN (SELECT accident_id FROM vehicle_accident WHERE registration_no = '$username')";
-				$resultHistory = mysqli_query($connection, $selectHistoryqry);
+				$selectHistoryqry = "SELECT * FROM accident WHERE accident_id IN (SELECT accident_id FROM vehicle_accident WHERE registration_no = ?)";
 				
+				$stmth = mysqli_prepare($connection, $selectHistoryqry);
+				mysqli_stmt_bind_param($stmth,'s', $username);
+				mysqli_stmt_execute($stmth);
 				
-
+				$resultHistory = mysqli_stmt_get_result($stmth);
+				
 				if(mysqli_num_rows($resultHistory)>0)
 				{
 					while($rowHistory = mysqli_fetch_assoc($resultHistory))
 					{
-						$acc_id = $rowHistory['accident_id'];
+						$acc_id = (int)$rowHistory['accident_id'];
 						
-						$selectHistoryImageqry = "SELECT photo FROM accident_photo WHERE accident_id = $acc_id LIMIT 1";
-						$resultHistoryImg = mysqli_query($connection, $selectHistoryImageqry);
+						$selectHistoryImageqry = "SELECT photo FROM accident_photo WHERE accident_id = ? LIMIT 1";
 						
+						$stmtf = mysqli_prepare($connection, $selectHistoryImageqry);
+						mysqli_stmt_bind_param($stmtf,'i', $acc_id);
+						mysqli_stmt_execute($stmtf);
+						
+						$resultHistoryImg = mysqli_stmt_get_result($stmtf);
 						$rowHistoryImg = mysqli_fetch_assoc($resultHistoryImg);
 ?>						
 						<tr class="view-row">
 							<td class="view-cell">																						<!--topic-->
 								<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-									<b>Topic:</b> <?php echo $rowHistory["topic"]; ?>
+									<b>Topic:</b> <?php echo htmlentities($rowHistory["topic"], ENT_QUOTES, 'UTF-8'); ?>
 								</font>
 							</td>
 							
 							<td class="view-cell" rowspan=6 align="right">																<!--image-->
-								<img src="<?php echo $rowHistoryImg['photo'] ?>" class="hover-shadow cursor" style="height: 230px; width: 230px; margin-right: 0px;">
+								<img src="<?php if(file_exists(__DIR__ . '/' . $rowHistoryImg['photo'])){ echo htmlentities($rowHistoryImg['photo'], ENT_QUOTES, 'UTF-8'); }else{ echo 'upload' . htmlentities(substr($rowHistoryImg['photo'],6), ENT_QUOTES, 'UTF-8'); } ?>" class="hover-shadow cursor" style="height: 230px; width: 230px; margin-right: 0px;" alt="<?php if(file_exists(__DIR__ . '/' . $rowHistoryImg['photo'])){ echo "Accident is verified by Insurance Company, RDA and Police."; }else{ echo "Accident is not verified."; } ?>">
 							</td>
 							
 							<td class="view-cell" style="background-color: #173457; padding-left: 20px;" rowspan=6>	
@@ -324,9 +336,9 @@
 						</tr>
 						
 						<tr class="view-row">
-							<td class="view-cell">																						<!--caategory-->
+							<td class="view-cell">																						<!--category-->
 								<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-									<b>Category:</b> <?php echo $rowHistory["category"]; ?>
+									<b>Category:</b> <?php echo htmlentities($rowHistory["category"], ENT_QUOTES, 'UTF-8'); ?>
 								</font>
 							</td>
 						</tr>
@@ -334,7 +346,7 @@
 						<tr class="view-row">
 							<td class="view-cell">																						<!--description-->
 								<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-									<b>Description:</b> <?php echo $rowHistory["description"]; ?>
+									<b>Description:</b> <?php echo htmlentities($rowHistory["description"], ENT_QUOTES, 'UTF-8'); ?>
 								</font>
 							</td>
 						</tr>
@@ -342,7 +354,7 @@
 						<tr class="view-row">
 							<td class="view-cell">																						<!--location-->
 								<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-									<b>Location:</b> <?php echo $rowHistory["location"]; ?>
+									<b>Location:</b> <?php echo htmlentities($rowHistory["location"], ENT_QUOTES, 'UTF-8'); ?>
 								</font>
 							</td>
 						</tr>
@@ -350,7 +362,7 @@
 						<tr class="view-row">
 							<td class="view-cell">																						<!--date-->
 								<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-									<b>Date:</b> <?php echo $rowHistory["date"]; ?>
+									<b>Date:</b> <?php echo htmlentities($rowHistory["date"], ENT_QUOTES, 'UTF-8'); ?>
 								</font>
 							</td>
 						</tr>
@@ -358,7 +370,7 @@
 						<tr class="view-row">
 							<td class="view-cell">																						<!--time-->
 								<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-									<b>Time:</b> <?php echo $rowHistory["time"]; ?>
+									<b>Time:</b> <?php echo htmlentities($rowHistory["time"], ENT_QUOTES, 'UTF-8'); ?>
 								</font>
 							</td>
 						</tr>
@@ -379,4 +391,4 @@
 	</div>
 	
 </body>  
-</html>  
+</html>
