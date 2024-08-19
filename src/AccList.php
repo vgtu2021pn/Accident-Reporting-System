@@ -7,8 +7,8 @@
 	}
 
     $servername = "localhost";                              // Connecting to the database 
-	$user = "root";
-	$pw = "";
+	$user = "ardb";
+	$pw = "mypassword";
 	$db = "accidentreportingdb";
 
 	$connection = mysqli_connect($servername, $user, $pw, $db);			
@@ -19,20 +19,18 @@
 
 ?>
 
-<!DOCTYPE HTML>
-<html>
-<head> 
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
 	<title>View Accident</title>
 	
 	<link rel="icon" href="images/car.png" type="image/gif">
 
-	<link rel="stylesheet" type="text/css" href="src/The Smart Parking System.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
 	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-	<script src="src/jquery-1.9.1.min.js"></script>
 	
 	<style>
 
@@ -302,7 +300,7 @@
 <table class="view-table">
 	
 <?php
-    $selectqry = "SELECT * FROM accident";
+    $selectqry = "SELECT * FROM accident WHERE EXISTS (SELECT * FROM vehicle_accident WHERE vehicle_accident.accident_id = accident.accident_id)";
 	$result = mysqli_query($connection, $selectqry);
 	
 	$total_rows = mysqli_num_rows($result);   
@@ -319,10 +317,10 @@
     }   
 
     // get the initial page number
-    $initial_page = ($page_number-1) * $limit;   
+    $initial_page = ($page_number-1) * $limit;
 
     // get data of selected rows per page
-    $getQuery = "SELECT * FROM accident LIMIT " . $initial_page . ',' . $limit;
+    $getQuery = "SELECT * FROM accident WHERE EXISTS (SELECT * FROM vehicle_accident WHERE vehicle_accident.accident_id = accident.accident_id) LIMIT " . $initial_page . ',' . $limit;
     $resultLimit = mysqli_query($connection, $getQuery);
 
     //display the retrieved result on the webpage 
@@ -331,7 +329,7 @@
 		$i = 1;
 		while ($row = mysqli_fetch_array($resultLimit)) {  
 
-			$acc_id = $row["accident_id"];
+			$acc_id = (int)$row["accident_id"];
 			
 			$selectqry2 = "SELECT photo FROM accident_photo WHERE accident_id = $acc_id LIMIT 1";
 			$result2 = mysqli_query($connection, $selectqry2);
@@ -344,21 +342,21 @@
 					<!--************************************************************brief view***********************************************************************-->
 					
 					<tr class="view-row" onclick="openModal(<?php echo $i; ?>); currentSlide(1, <?php echo $i; ?>)">
-						<td class="view-cell">																						<!--topic-->
+						<td class="view-cell">																			<!--topic-->
 							<font style="font-weight: bold; font-size: 20px; font-family: Tahoma, sans-serif;">
-								<?php echo $row["topic"]; ?>
+								<?php echo htmlentities($row["topic"], ENT_QUOTES, 'UTF-8'); ?>
 							</font>
 						</td>
 						
 						<td rowspan=5 style="padding: 15px;">																		<!--image-->
-							<img src="<?php echo $row2["photo"]; ?>" onclick="openModal(<?php echo $i; ?>); currentSlide(1, <?php echo $i; ?>)" class="hover-shadow cursor" style="height: 200px; width: 200px; margin-right: 0px;">
+							<img src="<?php if(file_exists(__DIR__ . '/' . $row2['photo'])){ echo htmlentities($row2['photo'], ENT_QUOTES, 'UTF-8'); }else{ echo 'upload' . htmlentities(substr($row2['photo'],6), ENT_QUOTES, 'UTF-8'); } ?>" onclick="openModal(<?php echo $i; ?>); currentSlide(1, <?php echo $i; ?>)" class="hover-shadow cursor" style="height: 200px; width: 200px; margin-right: 0px;">
 						</td>
 					</tr>
 					
 					<tr class="view-row" onclick="openModal(<?php echo $i; ?>); currentSlide(1, <?php echo $i; ?>)">
 						<td class="view-cell">																						<!--category-->
 							<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-								<b>Category:</b> <?php echo $row["category"]; ?>
+								<b>Category:</b> <?php echo htmlentities($row["category"], ENT_QUOTES, 'UTF-8'); ?>
 							</font>
 						</td>
 					</tr>
@@ -366,7 +364,7 @@
 					<tr class="view-row" onclick="openModal(<?php echo $i; ?>); currentSlide(1, <?php echo $i; ?>)">
 						<td class="view-cell">																						<!--location-->
 							<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-								<b>Location:</b> <?php echo $row["location"]; ?>
+								<b>Location:</b> <?php echo htmlentities($row["location"], ENT_QUOTES, 'UTF-8'); ?>
 							</font>
 						</td>
 					</tr>
@@ -374,7 +372,7 @@
 					<tr class="view-row" onclick="openModal(<?php echo $i; ?>); currentSlide(1, <?php echo $i; ?>)">
 						<td class="view-cell">																						<!--date-->
 							<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-								<b>Date:</b> <?php echo $row["date"]; ?>
+								<b>Date:</b> <?php echo htmlentities($row["date"], ENT_QUOTES, 'UTF-8'); ?>
 							</font>
 						</td>
 					</tr>
@@ -382,7 +380,7 @@
 					<tr class="view-row" onclick="openModal(<?php echo $i; ?>); currentSlide(1, <?php echo $i; ?>)">
 						<td class="view-cell">																						<!--time-->
 							<font style="font-size: 15px; font-family: Helvetica, sans-serif;">
-								<b>Time:</b> <?php echo $row["time"]; ?>
+								<b>Time:</b> <?php echo htmlentities($row["time"], ENT_QUOTES, 'UTF-8'); ?>
 							</font>
 						</td>
 					</tr>
@@ -413,7 +411,7 @@
 ?>
 									<div class="mySlides<?php echo $i; ?>" >
 										<div class="numbertext"><?php echo $j; ?> / 4</div>
-										<img src="<?php echo $row3["photo"]; ?>" style="width:100%">
+										<img src="<?php if(file_exists(__DIR__ . '/' . $row3['photo'])){ echo htmlentities($row3['photo'], ENT_QUOTES, 'UTF-8'); }else{ echo 'upload' . htmlentities(substr($row3['photo'],6), ENT_QUOTES, 'UTF-8'); } ?>" style="width:100%">
 									</div>
 <?php
 									$j++;
@@ -440,7 +438,7 @@
 								{
 ?>
 									<div class="column" >	<!--hovering small images-->
-										<img class="demo cursor" src="<?php echo $row4["photo"]; ?>" style="width:100%" onclick="currentSlide(<?php echo $x; ?>, <?php echo $i; ?>)" >
+										<img class="demo cursor" src="<?php if(file_exists(__DIR__ . '/' . $row4['photo'])){ echo htmlentities($row4['photo'], ENT_QUOTES, 'UTF-8'); }else{ echo 'upload' . htmlentities(substr($row4['photo'],6), ENT_QUOTES, 'UTF-8'); } ?>" style="width:100%" onclick="currentSlide(<?php echo $x; ?>, <?php echo $i; ?>)" >
 									</div>
 <?php
 									$x++;
@@ -481,74 +479,74 @@
 										<div style="">
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Topic:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row["topic"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row["topic"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 											
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Category:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row["category"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row["category"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Description:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row["description"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row["description"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Location:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row["location"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row["location"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Date:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row["date"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row["date"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Time:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row["time"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row["time"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 											
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Insurance Compnay:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["company_name"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["company_name"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 										</div>
 
 										<div>
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Registration No.:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["reg_no"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["reg_no"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Name:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["fullname"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["fullname"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>NIC:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["driver_nic"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["driver_nic"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>License No.:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["license_no"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["license_no"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Vehicle Type:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["vehicle_type"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["vehicle_type"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>Phone:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["telephone"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["telephone"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 
 											<div class="head-div">
 												<div class="cell" style="border-top-left-radius: 25px; border-bottom-left-radius: 25px;"><b>E-mail:</b></div>
-												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo $row5["email"]; ?></div>
+												<div class="cell" style="border-top-right-radius: 25px; border-bottom-right-radius: 25px;"><?php echo htmlentities($row5["email"], ENT_QUOTES, 'UTF-8'); ?></div>
 											</div>
 											
 											<div class="head-div">
