@@ -161,7 +161,7 @@
 					<td style="padding: 5px;">																<!--images-->
 						<div class="col-md-4 mb-3">
 							<label for="exampleFormControlFile1">Images</label>
-							<input type="file" name="file[]" class="form-control-file" id="exampleFormControlFile1" style="width: 500px; color: white; font-size: 15px;" multiple>
+							<input type="file" name="file[]" accept="image/*" class="form-control-file" id="exampleFormControlFile1" style="width: 500px; color: white; font-size: 15px;" multiple>
 						</div>
 					</td>
 				</tr>
